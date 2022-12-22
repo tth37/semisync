@@ -21,6 +21,10 @@ class Scheduler {
     private _db: Level;
 
     constructor(config: Config) {
+        if (!config.global.logdir.endsWith("/")) {
+            config.global.logdir += "/";
+        }
+
         this.config = config;
         this.status = {
             global: {
@@ -40,6 +44,10 @@ class Scheduler {
         });
     }
 
+    public getStatus() {
+        return this.status;
+    }
+
     async start() {
         this.logger.log("Fire Scheduler.start()");
         await this.loadWorkerStatus();
@@ -55,19 +63,19 @@ class Scheduler {
             const config = this.config.workers[key];
             try {
                 const savedWorkerStatus = JSON.parse(
-                    await this._db.get(config.name)
+                    await this._db.get(key)
                 ) as WorkerStatus;
                 if (savedWorkerStatus.status === SyncStatus.syncing) {
                     savedWorkerStatus.status = SyncStatus.failed;
                 }
-                this.status.workers[config.name] = savedWorkerStatus;
+                this.status.workers[key] = savedWorkerStatus;
             } catch (e) {
                 const newWorkerStatus = {
-                    name: config.name,
+                    name: key,
                     lastupdate: getDefaultTime(),
                     status: SyncStatus.success,
                 } as WorkerStatus;
-                this.status.workers[config.name] = newWorkerStatus;
+                this.status.workers[key] = newWorkerStatus;
             }
         }
     }
@@ -76,20 +84,20 @@ class Scheduler {
         for (const key in this.config.workers) {
             const config = this.config.workers[key];
             const params = {
-                name: config.name,
+                name: key,
                 command: config.command,
                 envs: {
                     SEMISYNC_UPSTREAM: config.upstream,
                     SEMISYNC_LOCALDIR: config.localdir,
                 },
-                logfile: this.config.global.logdir + config.name + ".out",
+                logfile: this.config.global.logdir + key + ".out",
                 timeout: config.timeout,
                 interval: config.interval,
                 refresh: this.config.global.refresh,
             } as WorkerParams;
-            const status = this.status.workers[config.name];
+            const status = this.status.workers[key];
             const newWorker = new Worker(params, status);
-            this.workers[config.name] = newWorker;
+            this.workers[key] = newWorker;
         }
     }
 
@@ -201,9 +209,9 @@ class Scheduler {
     }
 
     private async refresh() {
-        this.logger.log("Fire Scheduler.refresh()");
         this.updateWorkerStatus();
         this.updateGlobalStatus();
+        this.logger.log("Fire Scheduler.refresh()");
         this.logger.log(
             "Scheduler.status.workers: " + JSON.stringify(this.status.workers)
         );

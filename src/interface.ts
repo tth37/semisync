@@ -17,7 +17,6 @@ export interface GlobalConfig {
 }
 
 export interface WorkerConfig {
-    name: string;
     upstream: string;
     localdir: string;
     command: string;

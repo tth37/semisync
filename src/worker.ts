@@ -2,10 +2,12 @@ import { ChildProcess, spawn, spawnSync } from "child_process";
 import { SyncStatus, WorkerParams, WorkerStatus } from "./interface";
 import { writeFileSync } from "fs";
 import { getCurrentTime, getDiffSeconds } from "./utils";
+import Logger from "./logger";
 
 class Worker {
     private params: WorkerParams;
     private status: WorkerStatus;
+    private logger: Logger;
     private _timeout: NodeJS.Timeout;
     private _interval: NodeJS.Timeout;
     private _process: ChildProcess;
@@ -13,6 +15,7 @@ class Worker {
     constructor(params: WorkerParams, status: WorkerStatus) {
         this.params = params;
         this.status = status;
+        this.logger = new Logger(this.params.logfile);
         this._interval = setInterval(() => {
             this.refresh();
         }, this.params.refresh * 1000);
@@ -20,15 +23,16 @@ class Worker {
     }
 
     async start() {
+        this.logger.log("Fire Worker.start()");
         this.status.status = SyncStatus.syncing;
         this._process = spawn(this.params.command, [], {
             env: this.params.envs,
         });
         this._process.stdout.on("data", (data) => {
-            writeFileSync(this.params.logfile, data, { flag: "a" });
+            this.logger.log(data);
         });
         this._process.stderr.on("data", (data) => {
-            writeFileSync(this.params.logfile, data, { flag: "a" });
+            this.logger.log(data);
         });
         this._process.on("exit", (code) => {
             if (code === null) {
@@ -40,6 +44,7 @@ class Worker {
                 this.status.status = SyncStatus.failed;
             }
             clearTimeout(this._timeout);
+            this.logger.log("Fire Worker.exit(), with Worker.status " + JSON.stringify(this.status));
         });
         this._timeout = setTimeout(() => {
             this._process.kill();
