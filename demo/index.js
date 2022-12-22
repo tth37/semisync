@@ -5,23 +5,23 @@ const config = {
         syncingWorkersLimit: 4,
         avgloadLimit: 2.0,
         tcpconnsLimit: 20,
-        logdir: '/var/semi/log',
+        logdir: '/tmp/semi/log',
         refresh: 5,
-        dbfile: '/var/semi/level.db'
+        dbfile: '/tmp/semi/level.db'
     },
     workers: {
         bjlx: {
             upstream: 'rsync://rsync.anheng.com.cn/bjlx/',
-            localdir: '/var/semi/root/bjlx',
-            command: '/var/semi/scripts/bjlx.sh',
+            localdir: '/tmp/semi/root/bjlx',
+            command: '/tmp/semi/scripts/bjlx.sh',
             timeout: 1800,
             interval: 300,
             priority: 2
         },
         elvish: {
             upstream: 'rsync://rsync.elv.sh/elvish/',
-            localdir: '/var/semi/root/elvish',
-            command: '/var/semi/scripts/elvish.sh',
+            localdir: '/tmp/semi/root/elvish',
+            command: '/tmp/semi/scripts/elvish.sh',
             timeout: 1800,
             interval: 300,
             priority: 2
